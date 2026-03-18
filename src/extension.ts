@@ -14,17 +14,15 @@ export function activate(context: vscode.ExtensionContext) {
     output.show(true);
 
     try {
-      // Find all READ statements in the code
       const readVars = [...code.matchAll(/^\s*READ\s+([A-Za-z_]\w*)/gm)]
         .map((m) => m[1]);
 
-      // Prompt the user for each variable
       const inputs: Record<string, string | number> = {};
       for (const varName of readVars) {
         const value = await vscode.window.showInputBox({
           prompt: `Enter value for: ${varName}`,
           title: `READ ${varName}`,
-          ignoreFocusOut: true, // keeps the box open if you click away
+          ignoreFocusOut: true, 
         });
 
         if (value === undefined) {
@@ -32,7 +30,6 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        // Store as a number if it looks like one, otherwise as a string
         inputs[varName] = /^-?\d+(\.\d+)?$/.test(value.trim())
           ? Number(value.trim())
           : value;

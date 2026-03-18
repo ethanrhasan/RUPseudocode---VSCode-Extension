@@ -12,7 +12,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
 
   let pc = 0;
 
-  // ── Original getValue (unchanged) ────────────────────────────────────────
   const getValue = (token: string) => {
     if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
     if (token.startsWith('"') && token.endsWith('"')) return token.slice(1, -1);
@@ -20,14 +19,12 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
     throw new Error(`Undefined variable: ${token}`);
   };
 
-  // ── NEW: Boolean condition evaluator ─────────────────────────────────────
   const evalCondition = (expr: string): boolean => {
     expr = expr.trim();
     if (expr.startsWith("(") && expr.endsWith(")")) {
       expr = expr.slice(1, -1).trim();
     }
 
-    // OR / AND
     if (/\bOR\b/i.test(expr)) {
       return expr.split(/\bOR\b/i).some(part => evalCondition(part.trim()));
     }
@@ -35,7 +32,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
       return expr.split(/\bAND\b/i).every(part => evalCondition(part.trim()));
     }
 
-    // Natural language: "X is above/below/not/at least/at most Y"
     const natMatch = expr.match(/^(.+?)\s+is\s+(above|below|not|at least|at most)?\s*(.+)$/i);
     if (natMatch) {
       const a = getValue(natMatch[1].trim());
@@ -49,7 +45,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
       return a == b;
     }
 
-    // Symbolic operators: >= <= != > < =
     const symMatch = expr.match(/^(.+?)\s*(>=|<=|!=|>|<|=)\s*(.+)$/);
     if (symMatch) {
       const a = getValue(symMatch[1].trim());
@@ -66,7 +61,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
     throw new Error(`Invalid condition: ${expr}`);
   };
 
-  // ── NEW: Scan forward to find matching closing keyword (handles nesting) ──
   const findForward = (from: number, openWord: string, closeWord: string): number => {
     let depth = 1;
     for (let i = from + 1; i < lines.length; i++) {
@@ -77,7 +71,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
     throw new Error(`No matching ${closeWord} for ${openWord} at line ${from + 1}`);
   };
 
-  // ── NEW: Scan backward to find matching opening keyword ──────────────────
   const findBackward = (from: number, openWord: string, closeWord: string): number => {
     let depth = 1;
     for (let i = from - 1; i >= 0; i--) {
@@ -91,10 +84,8 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
   while (pc < lines.length) {
     const line = lines[pc];
 
-    // ── Original: HALT (unchanged) ───────────────────────────────────────────
     if (line === "HALT") break;
 
-    // ── Original: DISPLAY (unchanged) ────────────────────────────────────────
     if (line.startsWith("DISPLAY ")) {
       const expr = line.slice("DISPLAY ".length).trim();
       output.push(String(getValue(expr)));
@@ -102,7 +93,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
       continue;
     }
 
-    // ── Original: READ (unchanged) ────────────────────────────────────────────
     if (line.startsWith("READ ")) {
       const name = line.slice("READ ".length).trim();
       if (!(name in inputs)) throw new Error(`Missing input for READ ${name}`);
@@ -111,7 +101,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
       continue;
     }
 
-    // ── Original: SET (unchanged) ─────────────────────────────────────────────
     const setMatch = line.match(/^SET\s+([A-Za-z_]\w*)\s+TO\s+(.+)$/);
     if (setMatch) {
       const [, name, rhs] = setMatch;
@@ -120,7 +109,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
       continue;
     }
 
-    // ── Original: ADD (unchanged) ─────────────────────────────────────────────
     const addMatch = line.match(/^ADD\s+(.+)\s+TO\s+([A-Za-z_]\w*)$/);
     if (addMatch) {
       const [, amount, name] = addMatch;
@@ -129,7 +117,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
       continue;
     }
 
-    // ── Original: SUBTRACT (unchanged) ───────────────────────────────────────
     const subMatch = line.match(/^SUBTRACT\s+(.+)\s+FROM\s+([A-Za-z_]\w*)$/);
     if (subMatch) {
       const [, amount, name] = subMatch;
@@ -140,7 +127,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
     const computeMatch = line.match(/^COMPUTE\s+([A-Za-z_]\w*)\s+AS\s+(.+)$/i);
     if (computeMatch) {
       const [, name, expr] = computeMatch;
-      // Replace variable names in the expression with their current values
       const substituted = expr.replace(/[A-Za-z_]\w*/g, (token) => {
         if (vars.has(token)) return vars.get(token);
         throw new Error(`Undefined variable in expression: ${token}`);
@@ -151,11 +137,10 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
       continue;
     }
 
-    // ── NEW: IF <condition> THEN / ELSE / ENDIF ───────────────────────────────
     const ifMatch = line.match(/^IF\s+(.+?)\s+THEN$/i);
     if (ifMatch) {
       if (evalCondition(ifMatch[1])) {
-        pc++; // condition true → enter IF block
+        pc++;
       } else {
         const endifIdx = findForward(pc, "IF ", "ENDIF");
         let elseIdx = -1, depth = 1;
@@ -179,7 +164,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
 
     if (line.toUpperCase() === "ENDIF") { pc++; continue; }
 
-    // ── NEW: WHILE <condition> / ENDWHILE ─────────────────────────────────────
     const whileMatch = line.match(/^WHILE\s+(.+)$/i);
     if (whileMatch) {
       if (evalCondition(whileMatch[1])) {
@@ -195,7 +179,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
       continue;
     }
 
-    // ── NEW: FOR <var> FROM <start> TO <end> (STEP <n>) / ENDFOR ─────────────
     const forMatch = line.match(/^FOR\s+([A-Za-z_]\w*)\s+FROM\s+(.+?)\s+TO\s+(.+?)(?:\s+STEP\s+(.+))?$/i);
     if (forMatch) {
       const varName = forMatch[1];
@@ -230,7 +213,6 @@ export function runProgram(source: string, opts: { inputs?: Inputs } = {}) {
     throw new Error(`Unknown statement at line ${pc + 1}: ${line}`);
   }
 
-  // Strip internal FOR bookkeeping vars before returning
   const cleanVars: Record<string, any> = {};
   for (const [k, v] of vars) {
     if (!k.startsWith("__for_")) cleanVars[k] = v;

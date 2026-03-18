@@ -1,14 +1,18 @@
 {
   "name": "angelopseudocode",
   "displayName": "angelopseudocode",
-  "description": "",
+  "description": "a pseudocode interpreter for cs111 @ rutgers",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.107.0"
   },
   "categories": [
-    "Other"
+    "Programming Languages"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ethanrhasan/RUPseudocode---VSCode-Extension" 
+  },
   "activationEvents": ["*"]
 ,
   "main": "./out/extension.js",
