@@ -1,0 +1,21 @@
+{
+  "scopeName": "source.angelopseudo",
+  "patterns": [
+    {
+      "name": "keyword.control.pseudo",
+      "match": "\\b(SET|DISPLAY)\\b"
+    },
+    {
+      "name": "constant.numeric.pseudo",
+      "match": "\\b\\d+\\b"
+    },
+    {
+      "name": "variable.other.pseudo",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+    },
+    {
+      "name": "string.quoted.double.pseudo",
+      "match": "\".*?\""
+    }
+  ]
+}
